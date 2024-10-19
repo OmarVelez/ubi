@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Enlaces NFC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #E3F2FD;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #2196F3;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .info-box {
+            background-color: #FFF3E0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #FF9800;
+        }
+
+        .input-container {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .country-code {
+            position: absolute;
+            left: 12px;
+            top: 45px;
+            color: #666;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            padding-left: 45px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background-color: #2196F3;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        button:hover {
+            background-color: #1976D2;
+        }
+
+        #result {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        #linkDisplay {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            word-break: break-all;
+            font-family: monospace;
+        }
+
+        #status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+
+        .instructions {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .instructions h3 {
+            color: #2196F3;
+            margin-bottom: 12px;
+        }
+
+        .instructions ol {
+            margin-left: 25px;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Generador de Enlaces NFC</h2>
+        
+        <div class="info-box">
+            Este enlace se grabará en tu etiqueta NFC. Cuando alguien escanee la etiqueta,
+            se abrirá WhatsApp con tu número y solicitará automáticamente la ubicación GPS actual del dispositivo.
+        </div>
+        
+        <div class="input-container">
+            <label for="phoneNumber">Número de WhatsApp:</label>
+            <span class="country-code">+</span>
+            <input 
+                type="tel" 
+                id="phoneNumber" 
+                placeholder="593992543532"
+                maxlength="15"
+            >
+        </div>
+
+        <button id="generateLink">Generar Enlace para NFC</button>
+
+        <div id="result">
+            <h3>Enlace para grabar en NFC Tools:</h3>
+            <div id="linkDisplay"></div>
+            <button id="copyLink">Copiar Enlace</button>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="instructions">
+            <h3>Instrucciones para NFC Tools:</h3>
+            <ol>
+                <li>Genera y copia el enlace usando los botones superiores</li>
+                <li>Abre la aplicación NFC Tools Pro en tu dispositivo</li>
+                <li>Selecciona "Crear nueva tarea" o "Write"</li>
+                <li>Elige la opción "Abrir URL" o "Open URL"</li>
+                <li>Pega el enlace que copiaste anteriormente</li>
+                <li>Acerca tu dispositivo a la etiqueta NFC para grabar</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const phoneInput = document.getElementById('phoneNumber');
+        const generateButton = document.getElementById('generateLink');
+        const copyButton = document.getElementById('copyLink');
+        const result = document.getElementById('result');
+        const linkDisplay = document.getElementById('linkDisplay');
+        const status = document.getElementById('status');
+
+        // Cargar número guardado
+        const savedPhone = localStorage.getItem('savedPhone');
+        if (savedPhone) {
+            phoneInput.value = savedPhone;
+        }
+
+        // Manejar entrada de teléfono
+        phoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 15) {
+                value = value.slice(0, 15);
+            }
+            e.target.value = value;
+            localStorage.setItem('savedPhone', value);
+        });
+
+        // Mostrar mensaje de estado
+        function showStatus(message, type = 'success') {
+            status.textContent = message;
+            status.style.display = 'block';
+            status.style.backgroundColor = type === 'success' ? '#E8F5E9' : '#FFEBEE';
+            status.style.color = type === 'success' ? '#4CAF50' : '#F44336';
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        // Validar número de teléfono
+        function validatePhone() {
+            const phone = phoneInput.value.trim();
+            if (!phone) {
+                showStatus('Por favor, ingrese un número de teléfono', 'error');
+                return false;
+            }
+            if (phone.length < 10) {
+                showStatus('El número debe tener al menos 10 dígitos', 'error');
+                return false;
+            }
+            if (!/^\d+$/.test(phone)) {
+                showStatus('El número solo debe contener dígitos', 'error');
+                return false;
+            }
+            return true;
+        }
+
+        // Generar enlace
+        generateButton.addEventListener('click', function() {
+            if (!validatePhone()) return;
+            
+            const phone = phoneInput.value.trim();
+            const link = `intent://send?phone=${phone}#Intent;scheme=whatsapp;package=com.whatsapp;end`;
+            linkDisplay.textContent = link;
+            result.style.display = 'block';
+            showStatus('¡Enlace NFC generado correctamente! 🎉');
+        });
+
+        // Copiar enlace
+        copyButton.addEventListener('click', async function() {
+            const link = linkDisplay.textContent;
+            if (!link) {
+                showStatus('No hay enlace para copiar', 'error');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(link);
+                showStatus('¡Enlace copiado al portapapeles! 📋');
+            } catch (err) {
+                showStatus('Error al copiar el enlace', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
